@@ -23,6 +23,7 @@ POSITIVE_WORDS = [
     "chill",
     "relaxed",
     "amazing",
+    "emopositive",
 ]
 
 NEGATIVE_WORDS = [
@@ -36,7 +37,65 @@ NEGATIVE_WORDS = [
     "stressed",
     "hate",
     "boring",
+    "emonegative",
 ]
+
+# ---------------------------------------------------------------------
+# Word weights
+# ---------------------------------------------------------------------
+
+# How strongly each word should push the score toward positive/negative.
+# Words not listed here fall back to a default of +1 / -1 in MoodAnalyzer.
+# Emoji/emoticon tokens ("emopositive"/"emonegative") get a higher magnitude
+# since an emoji is usually a stronger, more deliberate signal than a single
+# word choice.
+WORD_WEIGHTS = {
+    "happy": 1,
+    "great": 2,
+    "good": 1,
+    "love": 2,
+    "excited": 2,
+    "awesome": 2,
+    "fun": 1,
+    "chill": 1,
+    "relaxed": 1,
+    "amazing": 2,
+    "emopositive": 3,
+    "sad": -1,
+    "bad": -1,
+    "terrible": -2,
+    "awful": -2,
+    "angry": -2,
+    "upset": -1,
+    "tired": -1,
+    "stressed": -1,
+    "hate": -2,
+    "boring": -1,
+    "emonegative": -3,
+}
+
+# ---------------------------------------------------------------------
+# Emoticon / emoji handling
+# ---------------------------------------------------------------------
+
+# Maps simple emoticons and emoji to a canonical word that already exists
+# in POSITIVE_WORDS / NEGATIVE_WORDS, so scoring logic doesn't need a
+# separate code path for them. Longer patterns are matched before shorter
+# ones (see MoodAnalyzer.preprocess) so ":-)" isn't left as a dangling "-".
+EMOTICON_MAP = {
+    ":-)": "emopositive",
+    ":)": "emopositive",
+    ":-d": "emopositive",
+    ":d": "emopositive",
+    "🙂": "emopositive",
+    "😊": "emopositive",
+    "😂": "emopositive",
+    ":-(": "emonegative",
+    ":(": "emonegative",
+    ":'(": "emonegative",
+    "🥲": "emonegative",
+    "💀": "emonegative",
+}
 
 # ---------------------------------------------------------------------
 # Starter labeled dataset
@@ -50,6 +109,14 @@ SAMPLE_POSTS = [
     "This is fine",
     "So excited for the weekend",
     "I am not happy about this",
+    "10/10", #Added
+    "That is dope",
+    "Feeling good",
+    "I'm Dead",
+    "k.",
+
+
+
 ]
 
 # Human labels for each post above.
@@ -65,6 +132,14 @@ TRUE_LABELS = [
     "neutral",   # "This is fine"
     "positive",  # "So excited for the weekend"
     "negative",  # "I am not happy about this"
+    "positive",  #Added
+    "positive",
+    "mixed",
+    "mixed",
+    "negative",
+
+
+
 ]
 
 # TODO: Add 5-10 more posts and labels.

@@ -9,9 +9,11 @@ This class starts with very simple logic:
   - Convert that score into a mood label
 """
 
+import re
+import string
 from typing import List, Dict, Tuple, Optional
 
-from dataset import POSITIVE_WORDS, NEGATIVE_WORDS
+from dataset import POSITIVE_WORDS, NEGATIVE_WORDS, EMOTICON_MAP, WORD_WEIGHTS
 
 
 class MoodAnalyzer:
@@ -32,6 +34,21 @@ class MoodAnalyzer:
         self.positive_words = set(w.lower() for w in positive_words)
         self.negative_words = set(w.lower() for w in negative_words)
 
+        # Longest patterns first so ":-)" is matched before ":)" leaves a
+        # dangling "-" behind.
+        self.emoticon_map = dict(
+            sorted(EMOTICON_MAP.items(), key=lambda item: len(item[0]), reverse=True)
+        )
+
+        # Look up how strongly each word should count. Words without an
+        # explicit entry in WORD_WEIGHTS (e.g. custom words passed above)
+        # fall back to a plain +1 / -1.
+        self.word_weights: Dict[str, int] = {}
+        for word in self.positive_words:
+            self.word_weights[word] = WORD_WEIGHTS.get(word, 1)
+        for word in self.negative_words:
+            self.word_weights[word] = WORD_WEIGHTS.get(word, -1)
+
     # ---------------------------------------------------------------------
     # Preprocessing
     # ---------------------------------------------------------------------
@@ -48,12 +65,27 @@ class MoodAnalyzer:
           - Splits on spaces
 
         Ideas to improve:
-          - Remove punctuation
-          - Handle simple emojis separately (":)", ":-(", "🥲", "😂")
-          - Normalize repeated characters ("soooo" -> "soo")
+          - Remove punctuation - Complete
+          - Handle simple emojis separately (":)", ":-(", "🥲", "😂") - Complete
+          - Normalize repeated characters ("soooo" -> "soo") - Complete
         """
         cleaned = text.strip().lower()
+
+        # Swap known emoticons/emoji for a canonical word (see dataset.EMOTICON_MAP)
+        # before stripping punctuation, since ":)" is made entirely of punctuation
+        # and would otherwise disappear in the next step.
+        for pattern, canonical in self.emoticon_map.items():
+            if pattern in cleaned:
+                cleaned = cleaned.replace(pattern, f" {canonical} ")
+
+        # Remove punctuation so "great!" and "great" match the same word.
+        cleaned = cleaned.translate(str.maketrans("", "", string.punctuation))
+
         tokens = cleaned.split()
+
+        # Normalize repeated characters so "soooo" and "soo" collapse to the
+        # same token.
+        tokens = [re.sub(r"(.)\1{2,}", r"\1\1", token) for token in tokens]
 
         return tokens
 
@@ -75,15 +107,13 @@ class MoodAnalyzer:
           - Give some words higher weights than others (for example "hate" < "annoyed")
           - Treat emojis or slang (":)", "lol", "💀") as strong signals
         """
-        # TODO: Implement this method.
-        #   1. Call self.preprocess(text) to get tokens.
-        #   2. Loop over the tokens.
-        #   3. Increase the score for positive words, decrease for negative words.
-        #   4. Return the total score.
-        #
-        # Hint: if you implement negation, you may want to look at pairs of tokens,
-        # like ("not", "happy") or ("never", "fun").
-        pass
+        tokens = self.preprocess(text)
+
+        score = 0
+        for token in tokens:
+            score += self.word_weights.get(token, 0)
+
+        return score
 
     # ---------------------------------------------------------------------
     # Label prediction
@@ -105,12 +135,14 @@ class MoodAnalyzer:
         Just remember that whatever labels you return should match the labels
         you use in TRUE_LABELS in dataset.py if you care about accuracy.
         """
-        # TODO: Implement this method.
-        #   1. Call self.score_text(text) to get the numeric score.
-        #   2. Return "positive" if the score is above 0.
-        #   3. Return "negative" if the score is below 0.
-        #   4. Return "neutral" otherwise.
-        pass
+        score = self.score_text(text)
+        print(f"Predicted score: {score}")
+
+        if score > 0:
+            return "positive"
+        if score < 0:
+            return "negative"
+        return "neutral"
 
     # ---------------------------------------------------------------------
     # Explanations (optional but recommended)
