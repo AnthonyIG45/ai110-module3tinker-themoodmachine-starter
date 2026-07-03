@@ -61,6 +61,8 @@ WORD_WEIGHTS = {
     "relaxed": 1,
     "amazing": 2,
     "emopositive": 3,
+    "sick": 2,
+    "stuck": -1,
     "sad": -1,
     "bad": -1,
     "terrible": -2,

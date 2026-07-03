@@ -113,6 +113,15 @@ class MoodAnalyzer:
         for token in tokens:
             score += self.word_weights.get(token, 0)
 
+        # Sarcasm heuristic: a positive word that shows up earlier in the
+        # text than a negative word (e.g. "great, but terrible") usually
+        # means the positive part wasn't sincere, so treat the overall mood
+        # as negative even if the raw word weights add up to zero/positive.
+        positive_positions = [i for i, t in enumerate(tokens) if t in self.positive_words]
+        negative_positions = [i for i, t in enumerate(tokens) if t in self.negative_words]
+        if positive_positions and negative_positions and min(positive_positions) < max(negative_positions):
+            score = -abs(score) if score != 0 else -1
+
         return score
 
     # ---------------------------------------------------------------------
